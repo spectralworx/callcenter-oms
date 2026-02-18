@@ -4,7 +4,6 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\Webhook\WooWebhookController;
 use App\Jobs\ProcessIncomingEvent;
 use App\Models\IncomingEvent;
-use Illuminate\Support\Facades\App;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -28,20 +27,22 @@ Route::post('/api/webhooks/woocommerce', [WooWebhookController::class, 'handle']
     ->name('webhooks.woocommerce');
 
 
-// ✅ DEV TEST (bez Postmana) — radi samo u local okruženju
-// Ako hoćeš da radi i na Railway dok testiraš, privremeno stavi APP_ENV=staging
+// ✅ DEV TEST (bez Postmana) — radi i na Railway, ali SAMO uz token
 Route::get('/dev/test-webhook', function () {
 
-    // Dozvoli samo u local (ili dodaj 'staging' dok testiraš)
-    if (!App::environment(['local'])) {
+    $token = (string) request()->query('token', '');
+    $expected = (string) env('DEV_TEST_TOKEN', '');
+
+    // Ako token nije podešen ili nije tačan -> 404 (da ne otkrivaš da ruta postoji)
+    if ($expected === '' || $token === '' || !hash_equals($expected, $token)) {
         abort(404);
     }
 
     $payload = [
         'event_type' => 'order.upsert',
         'order' => [
-            'woo_order_id' => 'TEST-1',
-            'order_number' => 'TEST-ORDER-1',
+            'woo_order_id' => 'TEST-' . now()->format('His'),
+            'order_number' => 'TEST-ORDER-' . now()->format('His'),
             'first_name' => 'Test',
             'last_name' => 'User',
             'phone' => '+38160000000',
@@ -69,11 +70,13 @@ Route::get('/dev/test-webhook', function () {
         ],
     ];
 
+    $dedupeKey = 'dev-test-' . now()->timestamp . '-' . bin2hex(random_bytes(4));
+
     $event = IncomingEvent::create([
         'source' => 'dev',
         'event_type' => 'order.upsert',
-        'external_id' => 'TEST-1',
-        'dedupe_key' => 'dev-test-1-' . now()->timestamp, // da uvek kreira novi
+        'external_id' => data_get($payload, 'order.woo_order_id'),
+        'dedupe_key' => $dedupeKey,
         'payload' => $payload,
         'status' => 'queued',
     ]);
@@ -84,6 +87,7 @@ Route::get('/dev/test-webhook', function () {
         'ok' => true,
         'message' => 'Dispatched async job',
         'incoming_event_id' => $event->id,
+        'woo_order_id' => data_get($payload, 'order.woo_order_id'),
     ]);
 });
 
