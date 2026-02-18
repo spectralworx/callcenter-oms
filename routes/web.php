@@ -5,6 +5,7 @@ use App\Http\Controllers\Webhook\WooWebhookController;
 use App\Jobs\ProcessIncomingEvent;
 use App\Models\IncomingEvent;
 use Illuminate\Support\Facades\Route;
+use App\Models\Order;
 
 Route::get('/', function () {
     return view('welcome');
@@ -89,6 +90,20 @@ Route::get('/dev/test-webhook', function () {
         'incoming_event_id' => $event->id,
         'woo_order_id' => data_get($payload, 'order.woo_order_id'),
     ]);
+});
+
+Route::get('/dev/orders', function () {
+    $token = (string) request()->query('token', '');
+    $expected = (string) env('DEV_TEST_TOKEN', '');
+
+    if ($expected === '' || $token === '' || !hash_equals($expected, $token)) {
+        abort(404);
+    }
+
+    return Order::with('items')
+        ->orderByDesc('id')
+        ->take(10)
+        ->get();
 });
 
 require __DIR__ . '/auth.php';
