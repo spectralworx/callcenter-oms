@@ -35,4 +35,9 @@ return [
         ],
     ],
 
+    'woocommerce' => [
+    'webhook_secret' => env('WOOCOMMERCE_WEBHOOK_SECRET'),
+    ],
+
+
 ];
