@@ -11,15 +11,14 @@ class WooWebhookController extends Controller
 {
     public function handle(Request $request)
     {
-        // HMAC je već verifikovan u middleware: woo.webhook.hmac
+        // HMAC već proverava middleware: woo.webhook.hmac
+
         $raw = $request->getContent();
         $payload = $request->json()->all();
 
-        // Koristimo Woo header-e ako postoje (kasnije kad Woo stvarno bude slao)
+        // Topic / delivery (ako dođe iz Woo)
         $topic = (string) $request->header('X-WC-Webhook-Topic', data_get($payload, 'event_type', 'order.upsert'));
         $deliveryId = (string) $request->header('X-WC-Webhook-Delivery-ID', data_get($payload, 'event_id', ''));
-
-        $eventType = $topic !== '' ? $topic : 'order.upsert';
 
         // external_id za debug/search
         $externalId =
@@ -27,10 +26,12 @@ class WooWebhookController extends Controller
             (string) data_get($payload, 'id', '') ?:
             (string) data_get($payload, 'order_number', '');
 
-        // Dedupe key
+        // Dedupe key:
+        // - Ako deliveryId postoji -> stabilno
+        // - Inače fallback -> hash raw body (isti body == isti key)
         $dedupeKey = $deliveryId !== ''
-            ? "wc:{$eventType}:{$deliveryId}"
-            : "wc:{$eventType}:" . hash('sha256', $raw);
+            ? "wc:{$topic}:{$deliveryId}"
+            : "wc:{$topic}:" . hash('sha256', $raw);
 
         $signature = (string) $request->attributes->get('woo_signature', '');
 
@@ -38,7 +39,7 @@ class WooWebhookController extends Controller
             ['dedupe_key' => $dedupeKey],
             [
                 'source' => 'woocommerce',
-                'event_type' => $eventType,
+                'event_type' => $topic,
                 'external_id' => $externalId !== '' ? $externalId : null,
                 'payload' => $payload,
                 'signature' => $signature,
@@ -46,7 +47,7 @@ class WooWebhookController extends Controller
             ]
         );
 
-        if (! $event->wasRecentlyCreated) {
+        if (!$event->wasRecentlyCreated) {
             return response()->json(['ok' => true, 'deduped' => true]);
         }
 
