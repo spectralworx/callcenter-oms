@@ -1,23 +1,24 @@
 <?php
 
-namespace Database\Seeders;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use App\Models\User;
-use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\Hash;
-
-class CallCenterUserSeeder extends Seeder
+return new class extends Migration
 {
-    public function run(): void
+    public function up(): void
     {
-        // Jedan jedini user (ako već postoji, ne dupliraj)
-        User::query()->updateOrCreate(
-            ['email' => 'callcenter@local'],
-            [
-                'name' => 'Call Center',
-                'password' => Hash::make(str()->random(40)), // ne koristi se
-                'pin_hash' => Hash::make('2026'),
-            ]
-        );
+        Schema::table('users', function (Blueprint $table) {
+            $table->string('pin_hash')->nullable()->after('password');
+            $table->unsignedSmallInteger('pin_attempts')->default(0)->after('pin_hash');
+            $table->timestamp('pin_locked_until')->nullable()->after('pin_attempts');
+        });
     }
-}
+
+    public function down(): void
+    {
+        Schema::table('users', function (Blueprint $table) {
+            $table->dropColumn(['pin_hash', 'pin_attempts', 'pin_locked_until']);
+        });
+    }
+};
