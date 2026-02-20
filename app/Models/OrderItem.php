@@ -3,12 +3,10 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class OrderItem extends Model
 {
-    use HasFactory;
-
     protected $fillable = [
         'order_id',
         'name',
@@ -25,25 +23,8 @@ class OrderItem extends Model
         'line_tax' => 'decimal:2',
     ];
 
-    /*
-    |--------------------------------------------------------------------------
-    | Relationships
-    |--------------------------------------------------------------------------
-    */
-
-    public function order()
+    public function order(): BelongsTo
     {
         return $this->belongsTo(Order::class);
-    }
-
-    /*
-    |--------------------------------------------------------------------------
-    | Helpers
-    |--------------------------------------------------------------------------
-    */
-
-    public function getLineTotalWithTaxAttribute()
-    {
-        return (float) $this->line_total + (float) $this->line_tax;
     }
 }

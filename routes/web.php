@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\PinLoginController;
 use App\Http\Controllers\App\HomeController;
+use App\Http\Controllers\App\CallCentarController;
 use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
 
@@ -20,7 +21,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/app', [HomeController::class, 'index'])->name('app.home');
 
-    Route::view('/app/call-centar', 'app.call-centar.index')->name('app.call-centar');
+    // Call Centar: lista + detalji
+    Route::get('/app/call-centar', [CallCentarController::class, 'index'])->name('app.call-centar');
+    Route::get('/app/call-centar/{order}', [CallCentarController::class, 'show'])->name('app.call-centar.show');
+
     Route::view('/app/licno-preuzimanje', 'app.pickup.index')->name('app.pickup');
     Route::view('/app/posalji-porudzbinu', 'app.send.index')->name('app.send');
     Route::view('/app/stampa', 'app.print.index')->name('app.print');
@@ -30,6 +34,3 @@ Route::middleware(['auth'])->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 });
-
-// Ne uključujemo auth.php jer ne koristimo email/password login
-// require __DIR__.'/auth.php';
