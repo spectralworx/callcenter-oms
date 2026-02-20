@@ -1,6 +1,6 @@
 {
   "event_type": "order.upsert",
-  "event_id": "prod-test-001",
+  "event_id": "prod-test-002",
   "order": {
     "woo_order_id": "10001",
     "order_number": "HL-10001",
@@ -14,18 +14,26 @@
     "total": 4990,
     "tax_total": 0,
     "currency": "RSD",
-    "status": "processing",
+    "status": "completed",
     "termal_code": "T-10001",
-    "tracking_numbers": ["GLS123456789"],
+    "tracking_numbers": ["GLS000000001"],
     "office_notice": "POZVATI KUPCA PRE SLANJA"
   },
   "items": [
     {
       "name": "JOICO Color Red",
-      "qty": 2,
+      "qty": 1,
       "sku": "JOI-RED-01",
       "ean": "1234567890123",
       "line_total": 3990,
+      "line_tax": 0
+    },
+    {
+      "name": "Maska za kosu",
+      "qty": 1,
+      "sku": "MASK-01",
+      "ean": "9999999999999",
+      "line_total": 1000,
       "line_tax": 0
     }
   ]
