@@ -1,78 +1,91 @@
 @props([
     'name',
     'show' => false,
-    'maxWidth' => '2xl'
+    'maxWidth' => '2xl',
+    'title' => null,
 ])
 
 @php
-$maxWidth = [
-    'sm' => 'sm:max-w-sm',
-    'md' => 'sm:max-w-md',
-    'lg' => 'sm:max-w-lg',
-    'xl' => 'sm:max-w-xl',
-    '2xl' => 'sm:max-w-2xl',
-][$maxWidth];
+$widthClass = match ($maxWidth) {
+    'sm'  => 'max-w-sm',
+    'md'  => 'max-w-md',
+    'lg'  => 'max-w-lg',
+    'xl'  => 'max-w-xl',
+    default => 'max-w-2xl',
+};
 @endphp
 
 <div
-    x-data="{
-        show: @js($show),
-        focusables() {
-            // All focusable element types...
-            let selector = 'a, button, input:not([type=\'hidden\']), textarea, select, details, [tabindex]:not([tabindex=\'-1\'])'
-            return [...$el.querySelectorAll(selector)]
-                // All non-disabled elements...
-                .filter(el => ! el.hasAttribute('disabled'))
-        },
-        firstFocusable() { return this.focusables()[0] },
-        lastFocusable() { return this.focusables().slice(-1)[0] },
-        nextFocusable() { return this.focusables()[this.nextFocusableIndex()] || this.firstFocusable() },
-        prevFocusable() { return this.focusables()[this.prevFocusableIndex()] || this.lastFocusable() },
-        nextFocusableIndex() { return (this.focusables().indexOf(document.activeElement) + 1) % (this.focusables().length + 1) },
-        prevFocusableIndex() { return Math.max(0, this.focusables().indexOf(document.activeElement)) -1 },
-    }"
-    x-init="$watch('show', value => {
-        if (value) {
-            document.body.classList.add('overflow-y-hidden');
-            {{ $attributes->has('focusable') ? 'setTimeout(() => firstFocusable().focus(), 100)' : '' }}
-        } else {
-            document.body.classList.remove('overflow-y-hidden');
-        }
-    })"
-    x-on:open-modal.window="$event.detail == '{{ $name }}' ? show = true : null"
-    x-on:close-modal.window="$event.detail == '{{ $name }}' ? show = false : null"
-    x-on:close.stop="show = false"
-    x-on:keydown.escape.window="show = false"
-    x-on:keydown.tab.prevent="$event.shiftKey || nextFocusable().focus()"
-    x-on:keydown.shift.tab.prevent="prevFocusable().focus()"
-    x-show="show"
-    class="fixed inset-0 overflow-y-auto px-4 py-6 sm:px-0 z-50"
-    style="display: {{ $show ? 'block' : 'none' }};"
+    id="modal-{{ $name }}"
+    role="dialog"
+    aria-modal="true"
+    class="{{ $show ? '' : 'hidden' }}"
+    style="position:fixed; inset:0; z-index:50; display:{{ $show ? 'flex' : 'none' }}; align-items:center; justify-content:center; padding:1rem;"
 >
+    {{-- Backdrop --}}
     <div
-        x-show="show"
-        class="fixed inset-0 transform transition-all"
-        x-on:click="show = false"
-        x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0"
-        x-transition:enter-end="opacity-100"
-        x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100"
-        x-transition:leave-end="opacity-0"
-    >
-        <div class="absolute inset-0 bg-gray-500 opacity-75"></div>
-    </div>
+        class="modal-backdrop"
+        onclick="closeModal('{{ $name }}')"
+        style="position:fixed; inset:0; background:rgba(15,23,42,0.45); backdrop-filter:blur(2px);"
+    ></div>
 
+    {{-- Panel --}}
     <div
-        x-show="show"
-        class="mb-6 bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:w-full {{ $maxWidth }} sm:mx-auto"
-        x-transition:enter="ease-out duration-300"
-        x-transition:enter-start="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
-        x-transition:enter-end="opacity-100 translate-y-0 sm:scale-100"
-        x-transition:leave="ease-in duration-200"
-        x-transition:leave-start="opacity-100 translate-y-0 sm:scale-100"
-        x-transition:leave-end="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
+        class="modal-panel {{ $widthClass }}"
+        style="position:relative; z-index:10; background:#fff; border-radius:16px; box-shadow:0 20px 60px rgba(0,0,0,0.15); width:100%; max-height:90vh; overflow-y:auto;"
     >
-        {{ $slot }}
+        @if ($title)
+            <div style="display:flex; align-items:center; justify-content:space-between; padding:1.1rem 1.5rem; border-bottom:1px solid #f1f5f9;">
+                <div style="font-size:1rem; font-weight:800; color:#1e293b; font-family:'Figtree',sans-serif;">
+                    {{ $title }}
+                </div>
+                <button
+                    type="button"
+                    onclick="closeModal('{{ $name }}')"
+                    style="background:none; border:none; cursor:pointer; font-size:1.25rem; color:#94a3b8; line-height:1; padding:0.2rem; border-radius:6px; transition:color 0.1s;"
+                    onmouseenter="this.style.color='#334155'"
+                    onmouseleave="this.style.color='#94a3b8'"
+                >✕</button>
+            </div>
+        @endif
+
+        <div style="padding:1.5rem; font-family:'Figtree',sans-serif;">
+            {{ $slot }}
+        </div>
     </div>
 </div>
+
+@once
+<style>
+    .modal-panel { animation: modalIn 0.18s ease; }
+    @keyframes modalIn {
+        from { opacity:0; transform:translateY(8px) scale(0.98); }
+        to   { opacity:1; transform:translateY(0) scale(1); }
+    }
+</style>
+<script>
+    function openModal(name) {
+        const el = document.getElementById('modal-' + name);
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+        const first = el.querySelector('button:not([onclick*="closeModal"]), input:not([type=hidden]), textarea, select');
+        if (first) setTimeout(() => first.focus(), 50);
+    }
+    function closeModal(name) {
+        const el = document.getElementById('modal-' + name);
+        if (!el) return;
+        el.classList.add('hidden');
+        el.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+    document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        document.querySelectorAll('[id^="modal-"]:not(.hidden)').forEach(el => {
+            const name = el.id.replace('modal-', '');
+            closeModal(name);
+        });
+    });
+</script>
+@endonce

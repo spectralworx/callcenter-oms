@@ -1,256 +1,209 @@
-<x-app-layout>
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Porudžbina #{{ $order->order_number ?? $order->woo_order_id }}
-            </h2>
+<!DOCTYPE html>
+<html lang="sr">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Porudžbina #{{ $order->order_number ?? $order->woo_order_id }} – OMS</title>
+    <link rel="preconnect" href="https://fonts.bunny.net">
+    <link href="https://fonts.bunny.net/css?family=figtree:400,600,700,800,900&display=swap" rel="stylesheet" />
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <style>
+        * { box-sizing:border-box; margin:0; padding:0; }
+        body { font-family:'Figtree',sans-serif; background:#f8fafc; min-height:100vh; display:flex; flex-direction:column; }
 
-            <div class="text-sm text-gray-600">
-                Status:
-                <span class="font-semibold">{{ $order->status }}</span>
-            </div>
+        .topbar { background:#fff; border-bottom:1px solid #e2e8f0; padding:0 2rem; height:58px; display:flex; align-items:center; justify-content:space-between; flex-shrink:0; }
+        .topbar-left { display:flex; align-items:center; gap:1rem; }
+        .back-btn { display:inline-flex; align-items:center; gap:0.4rem; text-decoration:none; font-size:0.85rem; font-weight:700; color:#64748b; padding:0.4rem 0.75rem; border:1px solid #e2e8f0; border-radius:8px; transition:all 0.1s; }
+        .back-btn:hover { background:#f1f5f9; color:#334155; }
+        .topbar-title { font-weight:800; font-size:1.05rem; color:#1e293b; }
+        .topbar-user { font-size:0.85rem; color:#64748b; font-weight:600; }
+
+        .badge { display:inline-flex; align-items:center; padding:0.2rem 0.65rem; border-radius:99px; font-size:0.72rem; font-weight:700; }
+        .badge-gray  { background:#f1f5f9; color:#475569; }
+        .badge-green { background:#dcfce7; color:#15803d; }
+        .badge-amber { background:#fef3c7; color:#b45309; }
+        .badge-red   { background:#fee2e2; color:#dc2626; }
+
+        .content { flex:1; overflow-y:auto; padding:1.25rem 2rem; }
+        .layout { display:grid; grid-template-columns:1fr 340px; gap:1.25rem; max-width:1200px; }
+
+        .card { background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; padding:1.25rem 1.5rem; }
+        .card + .card { margin-top:1rem; }
+        .card-label { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; margin-bottom:0.5rem; }
+
+        .customer-name { font-size:1.5rem; font-weight:800; color:#1e293b; letter-spacing:-0.02em; }
+        .customer-phone { font-size:1.1rem; font-weight:700; color:#4f46e5; margin-top:0.25rem; }
+        .customer-detail { font-size:0.85rem; color:#64748b; font-weight:500; margin-top:0.15rem; }
+
+        .total-amount { font-size:2rem; font-weight:900; color:#1e293b; letter-spacing:-0.03em; }
+        .total-label { font-size:0.8rem; color:#94a3b8; font-weight:600; }
+
+        .office-notice { background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; padding:1rem 1.25rem; margin-top:1rem; }
+        .office-notice .notice-label { font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#b45309; margin-bottom:0.35rem; }
+        .office-notice .notice-text { font-size:0.9rem; color:#78350f; font-weight:600; white-space:pre-wrap; }
+
+        .items-table { width:100%; border-collapse:collapse; font-size:0.88rem; }
+        .items-table th { text-align:left; padding:0.5rem 0.5rem; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; border-bottom:1px solid #f1f5f9; }
+        .items-table td { padding:0.65rem 0.5rem; border-bottom:1px solid #f8fafc; color:#334155; font-weight:600; vertical-align:top; }
+        .items-table tr:last-child td { border-bottom:none; }
+        .item-name { font-weight:700; color:#1e293b; }
+        .item-sku { font-size:0.75rem; color:#94a3b8; font-weight:500; }
+
+        /* ACTION BUTTONS */
+        .action-card { background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; overflow:hidden; }
+        .action-card + .action-card { margin-top:1rem; }
+        .action-header { padding:0.9rem 1.25rem; border-bottom:1px solid #f1f5f9; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.06em; color:#94a3b8; }
+        .action-body { padding:1rem 1.25rem; }
+
+        .action-textarea { width:100%; border:1.5px solid #e2e8f0; border-radius:10px; padding:0.65rem 0.9rem; font-size:0.88rem; font-family:inherit; color:#334155; font-weight:500; resize:none; outline:none; transition:border-color 0.12s; }
+        .action-textarea:focus { border-color:#818cf8; }
+        .action-textarea::placeholder { color:#94a3b8; }
+
+        .action-btn { display:block; width:100%; margin-top:0.75rem; padding:0.85rem; border:none; border-radius:10px; font-size:1rem; font-weight:800; font-family:inherit; cursor:pointer; transition:all 0.1s; letter-spacing:-0.01em; }
+        .action-btn:active { transform:scale(0.98); }
+        .btn-cancel   { background:#fef2f2; color:#dc2626; border:1.5px solid #fecaca; }
+        .btn-cancel:hover { background:#fee2e2; border-color:#f87171; }
+        .btn-complete { background:#f0fdf4; color:#15803d; border:1.5px solid #bbf7d0; }
+        .btn-complete:hover { background:#dcfce7; border-color:#4ade80; }
+        .btn-disabled { opacity:0.4; cursor:not-allowed; }
+
+        .flash-ok  { margin:1rem 2rem 0; background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:0.75rem 1.25rem; border-radius:10px; font-size:0.9rem; font-weight:600; }
+        .flash-err { margin:1rem 2rem 0; background:#fef2f2; border:1px solid #fecaca; color:#dc2626; padding:0.75rem 1.25rem; border-radius:10px; font-size:0.9rem; font-weight:600; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <div class="topbar-left">
+            <a href="{{ route('app.call-centar') }}" class="back-btn">← Lista</a>
+            <span class="topbar-title">
+                #{{ $order->order_number ?? $order->woo_order_id }}
+            </span>
+            @php
+                $statusBadge = match(strtolower($order->status)) {
+                    'completed' => 'badge-green',
+                    'processing','on-hold' => 'badge-amber',
+                    'cancelled','refunded' => 'badge-red',
+                    default => 'badge-gray',
+                };
+                $canComplete = !in_array($order->status, ['cancelled', 'completed']);
+                $canCancel   = !in_array($order->status, ['cancelled', 'completed']);
+            @endphp
+            <span class="badge {{ $statusBadge }}">{{ strtoupper($order->status) }}</span>
         </div>
-    </x-slot>
+        <span class="topbar-user">{{ Auth::user()->name }}</span>
+    </div>
 
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto sm:px-6 lg:px-8 space-y-6">
+    @if (session('status'))
+        <div class="flash-ok">✓ {{ session('status') }}</div>
+    @endif
+    @if ($errors->any())
+        <div class="flash-err">✗ {{ $errors->first() }}</div>
+    @endif
 
-            @if ($errors->has('status'))
-                <div class="bg-red-50 border border-red-200 text-red-800 rounded-lg px-4 py-3">
-                    {{ $errors->first('status') }}
+    <div class="content">
+        <div class="layout">
+
+            {{-- LEFT: info --}}
+            <div>
+                {{-- Customer --}}
+                <div class="card">
+                    <div class="card-label">Kupac</div>
+                    <div class="customer-name">{{ $order->first_name }} {{ $order->last_name }}</div>
+                    @if ($order->phone)
+                        <div class="customer-phone">📞 {{ $order->phone }}</div>
+                    @endif
+                    <div class="customer-detail">{{ $order->email ?? '—' }}</div>
+                    <div class="customer-detail">{{ $order->address ?? '—' }}, {{ $order->city ?? '—' }} {{ $order->postcode ?? '' }}</div>
+                    @if (!empty($order->termal_code))
+                        <div class="customer-detail" style="margin-top:0.4rem;">Termal: <strong>{{ $order->termal_code }}</strong></div>
+                    @endif
                 </div>
-            @endif
 
-            @if (session('status'))
-                <div class="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3">
-                    {{ session('status') }}
+                {{-- Total --}}
+                <div class="card" style="margin-top:1rem; display:flex; align-items:center; justify-content:space-between;">
+                    <div class="total-label">Ukupno</div>
+                    <div class="total-amount">{{ number_format((float)$order->total, 2, ',', '.') }} <span style="font-size:1.1rem; font-weight:600; color:#94a3b8;">{{ $order->currency }}</span></div>
                 </div>
-            @endif
 
-            {{-- OFFICE NOTICE (iz Woo admina) --}}
-            @if (!empty($order->office_notice))
-                <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg px-4 py-3">
-                    <div class="font-semibold">Napomena kancelarije</div>
-                    <div class="text-sm whitespace-pre-line">{{ $order->office_notice }}</div>
-                </div>
-            @endif
-
-            <div class="bg-white shadow-sm rounded-lg p-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <div class="text-sm text-gray-500">Kupac</div>
-                        <div class="text-lg font-semibold text-gray-900">
-                            {{ $order->customer_name }}
-                        </div>
-                        <div class="text-sm text-gray-700">
-                            Telefon: <span class="font-medium">{{ $order->phone ?: '—' }}</span>
-                        </div>
-                        <div class="text-sm text-gray-700">
-                            Email: <span class="font-medium">{{ $order->email ?: '—' }}</span>
-                        </div>
+                {{-- Office notice --}}
+                @if (!empty($order->office_notice))
+                    <div class="office-notice">
+                        <div class="notice-label">⚠ Napomena kancelarije</div>
+                        <div class="notice-text">{{ $order->office_notice }}</div>
                     </div>
+                @endif
 
-                    <div>
-                        <div class="text-sm text-gray-500">Adresa</div>
-                        <div class="text-sm text-gray-800">
-                            {{ $order->address ?: '—' }}<br>
-                            {{ $order->postcode ?: '' }} {{ $order->city ?: '' }}
-                        </div>
-
-                        <div class="mt-3 text-sm text-gray-700">
-                            Termal kod: <span class="font-semibold">{{ $order->termal_code ?: '—' }}</span>
-                        </div>
-                    </div>
-                </div>
-
-                @php
-                    $canComplete = $order->status !== 'cancelled' && $order->status !== 'completed';
-                    $canCancel = $order->status !== 'completed' && $order->status !== 'cancelled';
-                @endphp
-
-                <div class="mt-6 flex flex-wrap gap-2">
-                    <button
-                        type="button"
-                        class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
-                        id="openPickupModalBtn"
-                    >
-                        Pickup modal
-                    </button>
-
-                    <form method="POST" action="{{ route('app.call-centar.complete', $order) }}">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold text-white
-                                {{ $canComplete ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-emerald-300 cursor-not-allowed' }}"
-                            {{ $canComplete ? '' : 'disabled' }}
-                        >
-                            Mark pickup complete
-                        </button>
-                    </form>
-
-                    <form method="POST" action="{{ route('app.call-centar.cancel', $order) }}"
-                          onsubmit="return confirm('Sigurno otkazati porudžbinu?');">
-                        @csrf
-                        <button
-                            type="submit"
-                            class="inline-flex items-center rounded-md px-4 py-2 text-sm font-semibold text-white
-                                {{ $canCancel ? 'bg-red-600 hover:bg-red-700' : 'bg-red-300 cursor-not-allowed' }}"
-                            {{ $canCancel ? '' : 'disabled' }}
-                        >
-                            Otkaži porudžbinu
-                        </button>
-                    </form>
-                </div>
-            </div>
-
-            <div class="bg-white shadow-sm rounded-lg p-6">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Stavke</h3>
-
-                <div class="overflow-x-auto">
-                    <table class="min-w-full text-sm">
-                        <thead class="text-left text-gray-600 border-b">
+                {{-- Items --}}
+                <div class="card" style="margin-top:1rem;">
+                    <div class="card-label">Stavke</div>
+                    <table class="items-table">
+                        <thead>
                             <tr>
-                                <th class="py-2 pr-4">Naziv</th>
-                                <th class="py-2 pr-4">SKU</th>
-                                <th class="py-2 pr-4">EAN</th>
-                                <th class="py-2 pr-4 text-right">Količina</th>
+                                <th>Naziv</th>
+                                <th>SKU</th>
+                                <th style="text-align:right;">Qty</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y">
+                        <tbody>
                             @forelse ($order->items as $it)
                                 <tr>
-                                    <td class="py-2 pr-4 text-gray-900">{{ $it->name }}</td>
-                                    <td class="py-2 pr-4 text-gray-700">{{ $it->sku ?: '—' }}</td>
-                                    <td class="py-2 pr-4 text-gray-700">{{ $it->ean ?: '—' }}</td>
-                                    <td class="py-2 pr-4 text-right font-semibold">{{ $it->qty }}</td>
+                                    <td>
+                                        <div class="item-name">{{ $it->name }}</div>
+                                        @if ($it->ean) <div class="item-sku">EAN: {{ $it->ean }}</div> @endif
+                                    </td>
+                                    <td>{{ $it->sku ?? '—' }}</td>
+                                    <td style="text-align:right; font-weight:800; color:#1e293b;">{{ $it->qty }}</td>
                                 </tr>
                             @empty
-                                <tr>
-                                    <td colspan="4" class="py-3 text-gray-600">Nema stavki.</td>
-                                </tr>
+                                <tr><td colspan="3" style="color:#94a3b8; font-size:0.85rem;">Nema stavki.</td></tr>
                             @endforelse
                         </tbody>
                     </table>
                 </div>
             </div>
 
+            {{-- RIGHT: actions --}}
+            <div>
+                {{-- Pickup complete --}}
+                <div class="action-card">
+                    <div class="action-header">✓ Pickup complete</div>
+                    <div class="action-body">
+                        <form method="POST" action="{{ route('app.call-centar.complete', $order) }}">
+                            @csrf
+                            <textarea class="action-textarea" name="note" rows="3" placeholder="Napomena (opciono)…">{{ old('note') }}</textarea>
+                            <button
+                                type="submit"
+                                class="action-btn btn-complete {{ !$canComplete ? 'btn-disabled' : '' }}"
+                                {{ !$canComplete ? 'disabled' : '' }}
+                                onclick="{{ $canComplete ? "return confirm('Označiti kao completed?')" : 'return false' }}"
+                            >Potvrdi preuzimanje</button>
+                        </form>
+                    </div>
+                </div>
+
+                {{-- Cancel --}}
+                <div class="action-card">
+                    <div class="action-header">✕ Otkaži porudžbinu</div>
+                    <div class="action-body">
+                        <form method="POST" action="{{ route('app.call-centar.cancel', $order) }}">
+                            @csrf
+                            <textarea class="action-textarea" name="reason" rows="3" placeholder="Razlog (opciono)…">{{ old('reason') }}</textarea>
+                            <button
+                                type="submit"
+                                class="action-btn btn-cancel {{ !$canCancel ? 'btn-disabled' : '' }}"
+                                {{ !$canCancel ? 'disabled' : '' }}
+                                onclick="{{ $canCancel ? "return confirm('Otkazati porudžbinu?')" : 'return false' }}"
+                            >Otkaži porudžbinu</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div style="padding:0.75rem 0; font-size:0.75rem; color:#cbd5e1; text-align:center;">
+                    Office note se menja isključivo iz WooCommerce admina.
+                </div>
+            </div>
         </div>
     </div>
-
-    {{-- MODAL --}}
-    <x-simple-modal id="pickupModal" title="Pickup – potvrda" :open="request()->boolean('pickup')">
-        <div class="space-y-4">
-
-            @if (!empty($order->office_notice))
-                <div class="bg-amber-50 border border-amber-200 text-amber-900 rounded-lg p-3">
-                    <div class="font-semibold">Napomena kancelarije</div>
-                    <div class="text-sm whitespace-pre-line">{{ $order->office_notice }}</div>
-                </div>
-            @endif
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div class="bg-gray-50 rounded-lg p-3">
-                    <div class="text-xs text-gray-500">Ime i prezime</div>
-                    <div class="font-semibold text-gray-900">{{ $order->customer_name }}</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-3">
-                    <div class="text-xs text-gray-500">Telefon</div>
-                    <div class="font-semibold text-gray-900">{{ $order->phone ?: '—' }}</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-3">
-                    <div class="text-xs text-gray-500">Email</div>
-                    <div class="font-semibold text-gray-900">{{ $order->email ?: '—' }}</div>
-                </div>
-                <div class="bg-gray-50 rounded-lg p-3">
-                    <div class="text-xs text-gray-500">Termal kod</div>
-                    <div class="font-semibold text-gray-900">{{ $order->termal_code ?: '—' }}</div>
-                </div>
-            </div>
-
-            <div class="border rounded-lg overflow-hidden">
-                <div class="px-3 py-2 bg-gray-50 border-b text-sm font-semibold text-gray-800">
-                    Stavke
-                </div>
-                <div class="p-3">
-                    <ul class="space-y-2">
-                        @foreach ($order->items as $it)
-                            <li class="flex items-start justify-between gap-3">
-                                <div>
-                                    <div class="font-medium text-gray-900">{{ $it->name }}</div>
-                                    <div class="text-xs text-gray-500">
-                                        SKU: {{ $it->sku ?: '—' }} · EAN: {{ $it->ean ?: '—' }}
-                                    </div>
-                                </div>
-                                <div class="font-semibold text-gray-900">x{{ $it->qty }}</div>
-                            </li>
-                        @endforeach
-                    </ul>
-                </div>
-            </div>
-
-            @php
-                $canComplete = $order->status !== 'cancelled' && $order->status !== 'completed';
-            @endphp
-
-            <div class="flex flex-col sm:flex-row gap-2 pt-2">
-                <form method="POST" action="{{ route('app.call-centar.complete', $order) }}" class="flex-1">
-                    @csrf
-                    <button
-                        type="submit"
-                        class="w-full inline-flex justify-center items-center rounded-md px-4 py-2 text-sm font-semibold text-white
-                            {{ $canComplete ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-emerald-300 cursor-not-allowed' }}"
-                        id="pickupCompleteBtn"
-                        {{ $canComplete ? '' : 'disabled' }}
-                    >
-                        Mark as Pickup Complete
-                    </button>
-                </form>
-
-                <button
-                    type="button"
-                    class="flex-1 inline-flex justify-center items-center rounded-md bg-gray-200 px-4 py-2 text-sm font-semibold text-gray-800 hover:bg-gray-300"
-                    data-modal-close
-                >
-                    Zatvori
-                </button>
-            </div>
-        </div>
-    </x-simple-modal>
-
-    <script>
-        (function () {
-            const modal = document.getElementById('pickupModal');
-            const openBtn = document.getElementById('openPickupModalBtn');
-
-            function openModal() {
-                if (!modal) return;
-                modal.classList.remove('hidden');
-                const btn = document.getElementById('pickupCompleteBtn');
-                if (btn) btn.focus();
-            }
-
-            function closeModal() {
-                if (!modal) return;
-                modal.classList.add('hidden');
-            }
-
-            if (openBtn) openBtn.addEventListener('click', openModal);
-
-            if (modal) {
-                modal.querySelectorAll('[data-modal-close]').forEach(el => {
-                    el.addEventListener('click', closeModal);
-                });
-
-                document.addEventListener('keydown', (e) => {
-                    if (e.key === 'Escape' && !modal.classList.contains('hidden')) closeModal();
-                });
-
-                if (!modal.classList.contains('hidden')) {
-                    const btn = document.getElementById('pickupCompleteBtn');
-                    if (btn) btn.focus();
-                }
-            }
-        })();
-    </script>
-</x-app-layout>
+</body>
+</html>
