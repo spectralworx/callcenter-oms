@@ -11,7 +11,17 @@ class PickupController extends Controller
 {
     public function index(): View
     {
-        return view('app.pickup.index');
+        // Poslednjih 20 completed porudžbina danas (za "Poslednja preuzimanja" panel)
+        $recent = Order::query()
+            ->where('status', 'completed')
+            ->whereDate('updated_at', today())
+            ->orderByDesc('updated_at')
+            ->limit(20)
+            ->get(['id', 'order_number', 'woo_order_id', 'first_name', 'last_name', 'updated_at']);
+
+        return view('app.pickup.index', [
+            'recent' => $recent,
+        ]);
     }
 
     public function scan(Request $request)
@@ -22,6 +32,9 @@ class PickupController extends Controller
 
         $code = trim((string) $validated['code']);
 
+        // Ukloni # ako je scanner slučajno dodao
+        $code = ltrim($code, '#');
+
         $order = Order::query()
             ->where('termal_code', $code)
             ->orderByDesc('id')
@@ -30,10 +43,13 @@ class PickupController extends Controller
         if (! $order) {
             return back()
                 ->withInput()
-                ->withErrors(['code' => 'Nije pronađena porudžbina za ovaj kod.']);
+                ->withErrors(['code' => "Nije pronađena porudžbina za kod: {$code}"]);
         }
 
-        // Flag da show strana zna da automatski otvori pickup modal
-        return redirect()->route('app.call-centar.show', $order->id) . '?pickup=1';
+        // Redirect na show stranicu sa ?pickup=1 da automatski fokusira akciju
+        return redirect()->route('app.call-centar.show', [
+            'order'  => $order->id,
+            'pickup' => 1,
+        ]);
     }
 }

@@ -11,16 +11,44 @@ use Illuminate\Http\Request;
 class CallCentarController extends Controller
 {
     /**
-     * Call centar landing (nema liste, nema pretrage)
-     * Uputstvo: koristi pickup scan za kompletiranje.
+     * Lista porudžbina sa pretragom i filterom.
      */
-    public function index()
+    public function index(Request $request)
     {
-        return view('app.call-centar.index');
+        $q      = trim((string) $request->get('q', ''));
+        $status = trim((string) $request->get('status', ''));
+
+        $orders = Order::query()
+            ->when($q, function ($query) use ($q) {
+                $query->where(function ($sub) use ($q) {
+                    $sub->where('first_name',    'like', "%{$q}%")
+                        ->orWhere('last_name',   'like', "%{$q}%")
+                        ->orWhere('phone',       'like', "%{$q}%")
+                        ->orWhere('email',       'like', "%{$q}%")
+                        ->orWhere('order_number','like', "%{$q}%")
+                        ->orWhere('termal_code', 'like', "%{$q}%");
+                });
+            })
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->orderByDesc('id')
+            ->paginate(30)
+            ->withQueryString();
+
+        $statuses = Order::distinct()
+            ->orderBy('status')
+            ->pluck('status')
+            ->filter()
+            ->values();
+
+        return view('app.call-centar.index', [
+            'orders'   => $orders,
+            'statuses' => $statuses,
+            'filters'  => ['q' => $q, 'status' => $status],
+        ]);
     }
 
     /**
-     * Prikaz porudžbine (detalji + modal).
+     * Prikaz porudžbine (detalji + akcije).
      */
     public function show(Order $order)
     {
@@ -32,7 +60,7 @@ class CallCentarController extends Controller
     }
 
     /**
-     * OTKAZ porudžbine (call centar).
+     * OTKAZ porudžbine.
      */
     public function cancel(Request $request, Order $order, WooCommerceClient $woo)
     {
@@ -48,28 +76,27 @@ class CallCentarController extends Controller
 
         $order->update(['status' => 'cancelled']);
 
-        $wooOk = null;
+        $wooOk    = null;
         $wooError = null;
 
-        // Pokušaj Woo update samo ako je konfigurisan
         if ($woo->isConfigured()) {
             try {
                 $wooOk = $woo->updateOrderStatus($order->woo_order_id, 'cancelled');
             } catch (\Throwable $e) {
-                $wooOk = false;
+                $wooOk    = false;
                 $wooError = $e->getMessage();
             }
         }
 
         AuditLog::create([
-            'actor' => 'callcenter',
-            'action' => 'cancel_order',
+            'actor'        => auth()->user()?->name ?? 'callcenter',
+            'action'       => 'cancel_order',
             'woo_order_id' => $order->woo_order_id,
-            'meta' => [
-                'order_id' => $order->id,
+            'meta'         => [
+                'order_id'      => $order->id,
                 'woo_attempted' => $woo->isConfigured(),
-                'woo_ok' => $wooOk,
-                'woo_error' => $wooError,
+                'woo_ok'        => $wooOk,
+                'woo_error'     => $wooError,
             ],
             'ip' => (string) $request->ip(),
         ]);
@@ -86,8 +113,7 @@ class CallCentarController extends Controller
     }
 
     /**
-     * OPTIONAL: Ako ipak želiš da call centar može da klikne "complete" (ja bih to držao samo u pickup scan).
-     * Možeš da izbrišeš ovu metodu + rutu + dugme iz blade-a.
+     * COMPLETE pickup (call centar).
      */
     public function complete(Request $request, Order $order, WooCommerceClient $woo)
     {
@@ -103,28 +129,28 @@ class CallCentarController extends Controller
 
         $order->update(['status' => 'completed']);
 
-        $wooOk = null;
+        $wooOk    = null;
         $wooError = null;
 
         if ($woo->isConfigured()) {
             try {
                 $wooOk = $woo->updateOrderStatus($order->woo_order_id, 'completed');
             } catch (\Throwable $e) {
-                $wooOk = false;
+                $wooOk    = false;
                 $wooError = $e->getMessage();
             }
         }
 
         AuditLog::create([
-            'actor' => 'callcenter',
-            'action' => 'complete_pickup',
+            'actor'        => auth()->user()?->name ?? 'callcenter',
+            'action'       => 'complete_pickup',
             'woo_order_id' => $order->woo_order_id,
-            'meta' => [
-                'order_id' => $order->id,
-                'termal_code' => $order->termal_code,
+            'meta'         => [
+                'order_id'      => $order->id,
+                'termal_code'   => $order->termal_code,
                 'woo_attempted' => $woo->isConfigured(),
-                'woo_ok' => $wooOk,
-                'woo_error' => $wooError,
+                'woo_ok'        => $wooOk,
+                'woo_error'     => $wooError,
             ],
             'ip' => (string) $request->ip(),
         ]);

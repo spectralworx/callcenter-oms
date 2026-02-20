@@ -6,12 +6,6 @@ return [
     |--------------------------------------------------------------------------
     | Third Party Services
     |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
     */
 
     'postmark' => [
@@ -23,7 +17,7 @@ return [
     ],
 
     'ses' => [
-        'key' => env('AWS_ACCESS_KEY_ID'),
+        'key'    => env('AWS_ACCESS_KEY_ID'),
         'secret' => env('AWS_SECRET_ACCESS_KEY'),
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
@@ -31,13 +25,29 @@ return [
     'slack' => [
         'notifications' => [
             'bot_user_oauth_token' => env('SLACK_BOT_USER_OAUTH_TOKEN'),
-            'channel' => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
+            'channel'              => env('SLACK_BOT_USER_DEFAULT_CHANNEL'),
         ],
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | WooCommerce
+    |--------------------------------------------------------------------------
+    |
+    | base_url     → https://tvojshop.rs/wp-json/wc/v3
+    | consumer_key → ck_xxxxxxxxxxxxxxxxxxxx
+    | consumer_secret → cs_xxxxxxxxxxxxxxxxxxxx
+    |
+    | Ključeve generišeš u: WooCommerce → Settings → Advanced → REST API
+    | Permissions: Read/Write
+    |
+    */
     'woocommerce' => [
-    'webhook_secret' => env('WOOCOMMERCE_WEBHOOK_SECRET'),
+        'webhook_secret'  => env('WOOCOMMERCE_WEBHOOK_SECRET'),
+        'base_url'        => env('WOOCOMMERCE_BASE_URL'),        // https://tvojshop.rs/wp-json/wc/v3
+        'consumer_key'    => env('WOOCOMMERCE_CONSUMER_KEY'),    // ck_...
+        'consumer_secret' => env('WOOCOMMERCE_CONSUMER_SECRET'), // cs_...
+        'timeout'         => env('WOOCOMMERCE_TIMEOUT', 10),     // sekunde
     ],
-
 
 ];

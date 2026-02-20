@@ -7,7 +7,9 @@
     <title>Pošalji porudžbinu – OMS</title>
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=figtree:400,600,700,800,900&display=swap" rel="stylesheet" />
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @if(file_exists(public_path('build/manifest.json')))
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @endif
     <style>
         * { box-sizing:border-box; margin:0; padding:0; }
         body { font-family:'Figtree',sans-serif; background:#f8fafc; min-height:100vh; display:flex; flex-direction:column; }
@@ -19,54 +21,71 @@
         .topbar-title { font-weight:800; font-size:1.05rem; color:#1e293b; }
         .topbar-user  { font-size:0.85rem; color:#64748b; font-weight:600; }
 
-        .content { flex:1; overflow-y:auto; padding:1.25rem 2rem; display:grid; grid-template-columns:380px 1fr; gap:1.25rem; align-items:start; }
+        .flash-ok  { margin:1rem 2rem 0; background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:0.75rem 1.25rem; border-radius:10px; font-size:0.88rem; font-weight:600; }
+        .flash-err { margin:1rem 2rem 0; background:#fef2f2; border:1px solid #fecaca; color:#dc2626; padding:0.75rem 1.25rem; border-radius:10px; font-size:0.88rem; font-weight:600; }
 
-        /* FORM CARD */
+        .content { flex:1; padding:1.5rem 2rem; display:grid; grid-template-columns:480px 1fr; gap:1.25rem; align-items:start; }
+
         .card { background:#fff; border:1.5px solid #e2e8f0; border-radius:14px; overflow:hidden; }
-        .card-header { padding:0.9rem 1.25rem; border-bottom:1px solid #f1f5f9; }
-        .card-title { font-size:0.9rem; font-weight:800; color:#1e293b; }
-        .card-sub { font-size:0.75rem; color:#94a3b8; font-weight:500; margin-top:0.1rem; }
-        .card-body { padding:1.25rem; }
 
-        .field { margin-bottom:1rem; }
-        .field:last-child { margin-bottom:0; }
-        .field-label { font-size:0.75rem; font-weight:700; color:#64748b; display:block; margin-bottom:0.3rem; }
-        .field-input { width:100%; border:1.5px solid #e2e8f0; border-radius:8px; padding:0.6rem 0.85rem; font-size:0.9rem; font-family:inherit; font-weight:600; color:#1e293b; outline:none; transition:border-color 0.12s; background:#fff; }
-        .field-input:focus { border-color:#818cf8; }
-        .field-input::placeholder { color:#94a3b8; font-weight:400; }
-        .field-input.textarea { resize:none; }
-        .field-hint { font-size:0.72rem; color:#94a3b8; font-weight:500; margin-top:0.25rem; }
-        .field-error { font-size:0.75rem; color:#dc2626; font-weight:600; margin-top:0.25rem; }
+        /* COMPOSE */
+        .compose-top { padding:1.25rem 1.5rem 0; }
+        .compose-title { font-size:1.15rem; font-weight:900; color:#1e293b; letter-spacing:-0.02em; }
+        .compose-sub { font-size:0.78rem; color:#94a3b8; font-weight:500; margin-top:0.15rem; }
+        .compose-body { padding:1.25rem 1.5rem 1.5rem; }
+        .hr { height:1px; background:#f1f5f9; margin:1.1rem 0; }
 
-        .field-row { display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem; }
+        .field { margin-bottom:0.85rem; }
+        .field-label { font-size:0.7rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.06em; display:block; margin-bottom:0.3rem; }
+        .field-input { width:100%; border:1.5px solid #e2e8f0; border-radius:8px; padding:0.65rem 0.9rem; font-size:0.95rem; font-family:inherit; font-weight:600; color:#1e293b; outline:none; transition:border-color 0.12s; background:#fff; }
+        .field-input:focus { border-color:#818cf8; box-shadow:0 0 0 3px rgba(129,140,248,0.08); }
+        .field-input::placeholder { color:#cbd5e1; font-weight:400; }
+        .field-error { font-size:0.75rem; color:#dc2626; font-weight:600; margin-top:0.2rem; }
 
-        .btn { display:inline-flex; align-items:center; justify-content:center; padding:0.6rem 1.25rem; border-radius:8px; font-size:0.88rem; font-weight:700; font-family:inherit; cursor:pointer; border:none; transition:all 0.1s; text-decoration:none; white-space:nowrap; }
-        .btn:active { transform:scale(0.97); }
-        .btn-primary { background:#4f46e5; color:#fff; }
-        .btn-primary:hover { background:#4338ca; }
-        .btn-ghost { background:#f1f5f9; color:#475569; border:1.5px solid #e2e8f0; }
-        .btn-ghost:hover { background:#e2e8f0; }
-        .btn-row { display:flex; gap:0.6rem; margin-top:1.25rem; }
+        /* ITEMS */
+        .items-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:0.55rem; }
+        .items-header-label { font-size:0.7rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:0.06em; }
+        .items-count { font-size:0.72rem; font-weight:600; color:#cbd5e1; }
 
-        /* HISTORY TABLE */
+        .items-list { border:1.5px solid #e2e8f0; border-radius:10px; overflow:hidden; margin-bottom:0.6rem; }
+        .item-row { display:grid; grid-template-columns:1fr 72px 30px; gap:0.5rem; padding:0.55rem 0.75rem; border-bottom:1px solid #f8fafc; align-items:center; }
+        .item-row:last-child { border-bottom:none; }
+
+        .item-name { border:none; outline:none; font-family:inherit; background:transparent; font-size:0.9rem; font-weight:600; color:#1e293b; width:100%; }
+        .item-name::placeholder { color:#cbd5e1; font-weight:400; font-size:0.88rem; }
+        .item-name:focus { background:#fafbff; border-radius:4px; padding-left:4px; margin-left:-4px; }
+
+        .item-qty { border:1.5px solid #e2e8f0; border-radius:6px; padding:0.25rem 0.4rem; font-family:inherit; font-size:0.88rem; font-weight:700; color:#475569; text-align:center; outline:none; background:#fff; width:100%; }
+        .item-qty:focus { border-color:#818cf8; background:#fafbff; }
+
+        .item-remove { display:flex; align-items:center; justify-content:center; width:28px; height:28px; border:none; background:none; cursor:pointer; color:#dde1e7; font-size:0.95rem; border-radius:6px; transition:all 0.1s; flex-shrink:0; }
+        .item-remove:hover { background:#fef2f2; color:#ef4444; }
+
+        .add-item-btn { display:flex; align-items:center; justify-content:center; gap:0.4rem; width:100%; background:none; border:1.5px dashed #e2e8f0; border-radius:8px; padding:0.55rem; font-size:0.82rem; font-weight:700; color:#94a3b8; cursor:pointer; font-family:inherit; transition:all 0.1s; margin-bottom:0.85rem; }
+        .add-item-btn:hover { border-color:#818cf8; color:#4f46e5; background:#fafbff; }
+
+        .send-btn { display:flex; align-items:center; justify-content:center; gap:0.5rem; width:100%; padding:0.9rem; background:#4f46e5; color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:800; font-family:inherit; cursor:pointer; transition:all 0.1s; letter-spacing:-0.01em; }
+        .send-btn:hover { background:#4338ca; }
+        .send-btn:active { transform:scale(0.98); }
+
+        /* HISTORY */
+        .hist-header { padding:0.9rem 1.25rem; border-bottom:1px solid #f1f5f9; }
+        .hist-title { font-size:0.9rem; font-weight:800; color:#1e293b; }
+        .hist-sub { font-size:0.75rem; color:#94a3b8; margin-top:0.1rem; }
+
         table { width:100%; border-collapse:collapse; }
         thead th { padding:0.6rem 1rem; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.05em; color:#94a3b8; text-align:left; background:#f8fafc; border-bottom:1px solid #f1f5f9; }
-        thead th.right { text-align:right; }
         tbody td { padding:0.7rem 1rem; border-bottom:1px solid #f8fafc; font-size:0.85rem; color:#334155; font-weight:600; vertical-align:middle; }
         tbody tr:last-child td { border-bottom:none; }
         tbody tr:hover td { background:#fafafa; }
-        .td-num { font-weight:800; color:#4338ca; text-decoration:none; }
-        .td-num:hover { color:#312e81; }
-        .td-right { text-align:right; color:#94a3b8; font-size:0.78rem; }
 
         .empty-state { padding:2.5rem; text-align:center; }
-        .empty-icon { font-size:2rem; color:#e2e8f0; }
-        .empty-text { font-size:0.85rem; font-weight:700; color:#94a3b8; margin-top:0.4rem; }
-
-        .flash-ok  { margin:1rem 2rem 0; background:#f0fdf4; border:1px solid #bbf7d0; color:#15803d; padding:0.75rem 1.25rem; border-radius:10px; font-size:0.88rem; font-weight:600; flex-shrink:0; }
+        .empty-icon { font-size:2rem; }
+        .empty-text { font-size:0.85rem; font-weight:700; color:#94a3b8; margin-top:0.5rem; }
     </style>
 </head>
 <body>
+
     <div class="topbar">
         <div class="topbar-left">
             <a href="{{ route('app.home') }}" class="back-btn">← Nazad</a>
@@ -78,78 +97,113 @@
     @if (session('status'))
         <div class="flash-ok">✓ {{ session('status') }}</div>
     @endif
+    @if ($errors->any())
+        <div class="flash-err">✗ {{ $errors->first() }}</div>
+    @endif
 
     <div class="content">
 
-        {{-- FORM --}}
+        {{-- ── COMPOSE ──────────────────────────────── --}}
         <div class="card">
-            <div class="card-header">
-                <div class="card-title">Resend email</div>
-                <div class="card-sub">Unesi broj porudžbine ili email kupca</div>
+            <div class="compose-top">
+                <div class="compose-title">Nova poruka</div>
+                <div class="compose-sub">Manuelno slanje putem Resend servisa</div>
             </div>
-            <div class="card-body">
+
+            <div class="compose-body">
                 <form method="POST" action="{{ url()->current() }}">
                     @csrf
 
+                    <div class="hr" style="margin-top:1rem;"></div>
+
+                    {{-- PRIMA --}}
                     <div class="field">
-                        <label class="field-label">Porudžbina / Email</label>
+                        <label class="field-label">Prima</label>
                         <input
                             class="field-input"
-                            name="q"
-                            value="{{ old('q', request('order_id') ? ('#'.request('order_id')) : '') }}"
-                            placeholder="#12345 ili email@kupac.com"
+                            type="email"
+                            name="to"
+                            value="{{ old('to') }}"
+                            placeholder="kupac@email.com"
                             autofocus
+                            required
                         />
-                        @error('q') <div class="field-error">{{ $message }}</div> @enderror
+                        @error('to') <div class="field-error">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="field-row">
-                        <div>
-                            <label class="field-label">Tip poruke</label>
-                            @php $tpl = old('template', 'order_confirmation'); @endphp
-                            <select class="field-input" name="template">
-                                <option value="order_confirmation" @selected($tpl==='order_confirmation')>Potvrda porudžbine</option>
-                                <option value="payment_link"       @selected($tpl==='payment_link')>Link za plaćanje</option>
-                                <option value="shipping_update"    @selected($tpl==='shipping_update')>Update isporuke</option>
-                                <option value="custom"             @selected($tpl==='custom')>Custom</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="field-label">Primaoc</label>
-                            @php $rcp = old('recipient', 'customer'); @endphp
-                            <select class="field-input" name="recipient">
-                                <option value="customer" @selected($rcp==='customer')>Kupac</option>
-                                <option value="billing"  @selected($rcp==='billing')>Billing email</option>
-                                <option value="override" @selected($rcp==='override')>Ručni email</option>
-                            </select>
-                        </div>
-                    </div>
-
+                    {{-- SUBJECT --}}
                     <div class="field">
-                        <label class="field-label">Ručni email (opciono)</label>
-                        <input class="field-input" type="email" name="override_email" value="{{ old('override_email') }}" placeholder="Samo ako je primaoc = Ručni email" />
-                        @error('override_email') <div class="field-error">{{ $message }}</div> @enderror
+                        <label class="field-label">Subject</label>
+                        <input
+                            class="field-input"
+                            type="text"
+                            name="subject"
+                            value="{{ old('subject', 'Vaša porudžbina je potvrđena') }}"
+                            placeholder="Naslov emaila…"
+                            required
+                        />
+                        @error('subject') <div class="field-error">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="field">
-                        <label class="field-label">Napomena (interno / audit log)</label>
-                        <textarea class="field-input textarea" name="note" rows="3" placeholder="Zašto šaljemo?…">{{ old('note') }}</textarea>
-                        @error('note') <div class="field-error">{{ $message }}</div> @enderror
+                    <div class="hr"></div>
+
+                    {{-- STAVKE --}}
+                    <div class="items-header">
+                        <span class="items-header-label">Stavke porudžbine</span>
+                        <span class="items-count" id="itemCount">—</span>
                     </div>
 
-                    <div class="btn-row">
-                        <button type="submit" class="btn btn-primary">✉️ Pošalji</button>
-                        <a href="{{ route('app.call-centar') }}" class="btn btn-ghost">Otvori listu</a>
+                    <div class="items-list" id="itemsList">
+                        @php $oldItems = old('items', [['name'=>'','qty'=>1]]); @endphp
+                        @foreach ($oldItems as $i => $it)
+                            <div class="item-row">
+                                <input
+                                    type="text"
+                                    name="items[{{ $i }}][name]"
+                                    value="{{ $it['name'] ?? '' }}"
+                                    placeholder="Naziv proizvoda…"
+                                    class="item-name"
+                                />
+                                <input
+                                    type="number"
+                                    name="items[{{ $i }}][qty]"
+                                    value="{{ $it['qty'] ?? 1 }}"
+                                    min="1"
+                                    class="item-qty"
+                                    title="Količina"
+                                />
+                                <button type="button" class="item-remove" onclick="removeItem(this)">✕</button>
+                            </div>
+                        @endforeach
                     </div>
+
+                    <button type="button" class="add-item-btn" onclick="addItem()">+ Dodaj stavku</button>
+
+                    <div class="hr"></div>
+
+                    {{-- NAPOMENA --}}
+                    <div class="field" style="margin-bottom:1.25rem;">
+                        <label class="field-label">Interna napomena (neće biti u emailu)</label>
+                        <input
+                            class="field-input"
+                            type="text"
+                            name="note"
+                            value="{{ old('note') }}"
+                            placeholder="Za audit log…"
+                        />
+                    </div>
+
+                    <button type="submit" class="send-btn">✉️ Pošalji email</button>
+
                 </form>
             </div>
         </div>
 
-        {{-- HISTORY --}}
+        {{-- ── ISTORIJA ─────────────────────────────── --}}
         <div class="card">
-            <div class="card-header">
-                <div class="card-title">Istorija slanja</div>
-                <div class="card-sub">Poslednje resend akcije</div>
+            <div class="hist-header">
+                <div class="hist-title">Istorija slanja</div>
+                <div class="hist-sub">Poruke poslate putem Resend-a</div>
             </div>
 
             @php $history = $history ?? collect(); @endphp
@@ -157,45 +211,34 @@
             <table>
                 <thead>
                     <tr>
-                        <th>Porudžbina</th>
-                        <th>Template</th>
-                        <th>Primaoc</th>
+                        <th>Prima</th>
+                        <th>Subject</th>
                         <th>Korisnik</th>
-                        <th class="right">Vreme</th>
+                        <th style="text-align:right;">Vreme</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse ($history as $h)
                         @php
-                            $number = $h->order_number ?? $h['order_number'] ?? ($h->order_id ?? $h['order_id'] ?? '—');
-                            $tpl2   = $h->template     ?? $h['template']     ?? '—';
-                            $to     = $h->to           ?? $h['to']           ?? '—';
-                            $by     = $h->user_name    ?? $h['user_name']    ?? '—';
-                            $when   = $h->created_at   ?? $h['created_at']   ?? null;
+                            $to   = $h->to          ?? $h['to']         ?? '—';
+                            $subj = $h->subject      ?? $h['subject']    ?? '—';
+                            $by   = $h->user_name    ?? $h['user_name']  ?? '—';
+                            $when = $h->created_at   ?? $h['created_at'] ?? null;
                         @endphp
                         <tr>
-                            <td>
-                                <a class="td-num" href="{{ route('app.call-centar.show', $h->order_id ?? $h['order_id'] ?? 0) }}">
-                                    #{{ $number }}
-                                </a>
-                            </td>
-                            <td>
-                                <span style="background:#ede9fe; color:#5b21b6; padding:0.15rem 0.55rem; border-radius:99px; font-size:0.72rem; font-weight:700;">
-                                    {{ $tpl2 }}
-                                </span>
-                            </td>
                             <td style="font-size:0.82rem;">{{ $to }}</td>
-                            <td style="font-size:0.82rem; color:#64748b;">{{ $by }}</td>
-                            <td class="td-right">
+                            <td style="font-size:0.82rem; color:#475569; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $subj }}</td>
+                            <td style="font-size:0.78rem; color:#94a3b8;">{{ $by }}</td>
+                            <td style="text-align:right; font-size:0.78rem; color:#94a3b8;">
                                 {{ $when ? \Illuminate\Support\Carbon::parse($when)->format('d.m.Y H:i') : '—' }}
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5">
+                            <td colspan="4">
                                 <div class="empty-state">
                                     <div class="empty-icon">✉️</div>
-                                    <div class="empty-text">Nema istorije slanja</div>
+                                    <div class="empty-text">Još nema poslatih poruka</div>
                                 </div>
                             </td>
                         </tr>
@@ -205,5 +248,45 @@
         </div>
 
     </div>
+
+    <script>
+        let idx = {{ count(old('items', [['name'=>'','qty'=>1]])) }};
+
+        function updateCount() {
+            const n = document.querySelectorAll('#itemsList .item-row').length;
+            document.getElementById('itemCount').textContent =
+                n === 0 ? '—' : n + (n === 1 ? ' stavka' : n < 5 ? ' stavke' : ' stavki');
+        }
+
+        function addItem() {
+            const list = document.getElementById('itemsList');
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            row.innerHTML = `
+                <input type="text" name="items[${idx}][name]" placeholder="Naziv proizvoda…" class="item-name" />
+                <input type="number" name="items[${idx}][qty]" value="1" min="1" class="item-qty" title="Količina" />
+                <button type="button" class="item-remove" onclick="removeItem(this)">✕</button>
+            `;
+            list.appendChild(row);
+            idx++;
+            updateCount();
+            row.querySelector('input').focus();
+        }
+
+        function removeItem(btn) {
+            const list = document.getElementById('itemsList');
+            const row = btn.closest('.item-row');
+            if (list.children.length > 1) {
+                row.remove();
+            } else {
+                row.querySelector('.item-name').value = '';
+                row.querySelector('.item-qty').value = 1;
+            }
+            updateCount();
+        }
+
+        document.addEventListener('DOMContentLoaded', updateCount);
+    </script>
+
 </body>
 </html>
