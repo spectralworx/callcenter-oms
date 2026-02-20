@@ -21,6 +21,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'pin_hash', // Savet: Dodaj i ovde ako želiš da dozvoliš masovni unos pina
     ];
 
     /**
@@ -31,6 +32,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'pin_hash', // Ovo je linija koju smo dodali
     ];
 
     /**
@@ -43,6 +45,7 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'pin_hash' => 'hashed', // Dodao sam i ovo da bi Laravel automatski heširao PIN
         ];
     }
 }
