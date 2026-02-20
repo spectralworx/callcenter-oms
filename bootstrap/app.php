@@ -12,7 +12,6 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Ovde dodajemo alias za tvoj WooCommerce Webhook middleware
         $middleware->alias([
             'woo.webhook.hmac' => \App\Http\Middleware\VerifyWooWebhookHmac::class,
         ]);

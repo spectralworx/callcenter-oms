@@ -1,27 +1,35 @@
 <?php
 
-use Illuminate\Http\Request;
+use App\Http\Controllers\Auth\PinLoginController;
+use App\Http\Controllers\App\HomeController;
+use App\Http\Controllers\ProfileController;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Webhook\WooWebhookController;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Ovde definišemo rute za tvoj API. Laravel 11/12 ove rute automatski
-| stavlja pod "/api" prefiks. Dakle, putanja će biti:
-| tvoj-domen.com/api/webhooks/woocommerce
-|
-*/
-
-// Webhook ruta za WooCommerce
-// Primenjujemo 'woo.webhook.hmac' alias koji smo dodali u bootstrap/app.php
-Route::post('/webhooks/woocommerce', [WooWebhookController::class, 'handle'])
-    ->middleware('woo.webhook.hmac')
-    ->name('api.webhooks.woocommerce');
-
-// Primer rute za proveru statusa (opciono)
-Route::get('/status', function () {
-    return response()->json(['status' => 'online', 'version' => '1.0.0']);
+// Početna strana -> PIN login
+Route::get('/', function () {
+    return redirect()->route('pin.login');
 });
+
+// --- PIN Authentication ---
+Route::get('/login', [PinLoginController::class, 'create'])->name('pin.login');
+Route::post('/login', [PinLoginController::class, 'store'])->name('pin.login.store');
+Route::post('/logout', [PinLoginController::class, 'destroy'])->name('logout');
+
+// --- App (zaštićeno) ---
+Route::middleware(['auth'])->group(function () {
+
+    Route::get('/app', [HomeController::class, 'index'])->name('app.home');
+
+    Route::view('/app/call-centar', 'app.call-centar.index')->name('app.call-centar');
+    Route::view('/app/licno-preuzimanje', 'app.pickup.index')->name('app.pickup');
+    Route::view('/app/posalji-porudzbinu', 'app.send.index')->name('app.send');
+    Route::view('/app/stampa', 'app.print.index')->name('app.print');
+
+    // Profil (opciono)
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+});
+
+// Ne uključujemo auth.php jer ne koristimo email/password login
+// require __DIR__.'/auth.php';

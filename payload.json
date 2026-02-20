@@ -27,14 +27,6 @@
       "ean": "1234567890123",
       "line_total": 3990,
       "line_tax": 0
-    },
-    {
-      "name": "JOICO Developer",
-      "qty": 1,
-      "sku": "JOI-DEV-02",
-      "ean": "9876543210987",
-      "line_total": 1000,
-      "line_tax": 0
     }
   ]
 }

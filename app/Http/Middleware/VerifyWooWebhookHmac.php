@@ -23,7 +23,6 @@ class VerifyWooWebhookHmac
             return response('Missing signature', 401);
         }
 
-        // Expected by Woo-style signature:
         // base64(hmac_sha256(raw_body, secret))
         $computed = base64_encode(hash_hmac('sha256', $raw, $secret, true));
 
@@ -31,7 +30,6 @@ class VerifyWooWebhookHmac
             return response('Invalid signature', 401);
         }
 
-        // Optional: keep for logging/debug
         $request->attributes->set('woo_signature', $provided);
 
         return $next($request);

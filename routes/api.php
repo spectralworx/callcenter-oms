@@ -9,3 +9,8 @@ Route::post('/webhooks/woocommerce/order', [WooWebhookController::class, 'handle
         'woo.webhook.hmac',
     ])
     ->name('webhooks.woocommerce.order');
+
+// (opciono) health za API (lak debug)
+Route::get('/status', function () {
+    return response()->json(['status' => 'online']);
+});
