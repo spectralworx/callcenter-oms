@@ -12,7 +12,7 @@ class VerifyWooWebhookHmac
     {
         $secret = env('WOOCOMMERCE_WEBHOOK_SECRET');
 
-        if (!$secret) {
+        if (!is_string($secret) || $secret === '') {
             return response('Webhook secret missing', 500);
         }
 
@@ -23,14 +23,15 @@ class VerifyWooWebhookHmac
             return response('Missing signature', 401);
         }
 
-        // Woo expected: base64(hmac_sha256(raw_body, secret))
+        // Expected by Woo-style signature:
+        // base64(hmac_sha256(raw_body, secret))
         $computed = base64_encode(hash_hmac('sha256', $raw, $secret, true));
 
         if (!hash_equals($computed, $provided)) {
             return response('Invalid signature', 401);
         }
 
-        // optionally keep for logging
+        // Optional: keep for logging/debug
         $request->attributes->set('woo_signature', $provided);
 
         return $next($request);

@@ -1,0 +1,40 @@
+{
+  "event_type": "order.upsert",
+  "event_id": "prod-test-001",
+  "order": {
+    "woo_order_id": "10001",
+    "order_number": "HL-10001",
+    "first_name": "Pavle",
+    "last_name": "Ciric",
+    "phone": "+38160123456",
+    "email": "pavle@example.com",
+    "address": "Knez Mihailova 1",
+    "city": "Beograd",
+    "postcode": "11000",
+    "total": 4990,
+    "tax_total": 0,
+    "currency": "RSD",
+    "status": "processing",
+    "termal_code": "T-10001",
+    "tracking_numbers": ["GLS123456789"],
+    "office_notice": "POZVATI KUPCA PRE SLANJA"
+  },
+  "items": [
+    {
+      "name": "JOICO Color Red",
+      "qty": 2,
+      "sku": "JOI-RED-01",
+      "ean": "1234567890123",
+      "line_total": 3990,
+      "line_tax": 0
+    },
+    {
+      "name": "JOICO Developer",
+      "qty": 1,
+      "sku": "JOI-DEV-02",
+      "ean": "9876543210987",
+      "line_total": 1000,
+      "line_tax": 0
+    }
+  ]
+}

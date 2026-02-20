@@ -6,62 +6,52 @@ use App\Http\Controllers\Controller;
 use App\Jobs\ProcessIncomingEvent;
 use App\Models\IncomingEvent;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\Log;
 
 class WooWebhookController extends Controller
 {
     public function handle(Request $request)
     {
-        // 1) Sigurnost: HMAC potpis (naš custom header)
-        $secret = config('services.woocommerce.webhook_secret');
+        // HMAC je već proveren u middleware: woo.webhook.hmac
 
-        if (!$secret) {
-            return response()->json(['error' => 'Webhook secret not configured'], 500);
-        }
-
-        $signature = (string) $request->header('X-CC-Signature', '');
         $raw = $request->getContent();
-
-        $expected = hash_hmac('sha256', $raw, $secret);
-
-        // constant-time compare
-        if (!$signature || !hash_equals($expected, $signature)) {
-            return response()->json(['error' => 'Invalid signature'], 401);
-        }
-
         $payload = $request->json()->all();
 
-        // 2) Minimalni podaci
-        $eventType  = (string) data_get($payload, 'event_type', 'order.upsert');
-        $externalId = (string) data_get($payload, 'order.woo_order_id', data_get($payload, 'order_number', ''));
+        // Woo headers (ako ih ima) - super za dedupe
+        $topic = (string) $request->header('X-WC-Webhook-Topic', data_get($payload, 'event_type', 'order.upsert'));
+        $deliveryId = (string) $request->header('X-WC-Webhook-Delivery-ID', data_get($payload, 'event_id', ''));
 
-        // 3) Dedupe ključ (da Woo retry ne napravi duplikat)
-        // Ako WP šalje event_id -> koristi njega, inače hash body
-        $eventId = (string) data_get($payload, 'event_id', '');
-        $dedupeKey = $eventId !== ''
-            ? "woo:{$eventType}:{$eventId}"
-            : "woo:{$eventType}:" . hash('sha256', $raw);
+        // external_id koristimo za search/debug (nije unique)
+        $externalId =
+            (string) data_get($payload, 'order.woo_order_id', '') ?:
+            (string) data_get($payload, 'id', '') ?:
+            (string) data_get($payload, 'order_number', '');
 
-        // 4) Upis incoming event (idempotent)
+        // Idempotency key:
+        // 1) ako delivery id postoji -> stabilno
+        // 2) fallback -> hash raw body
+        $dedupeKey = $deliveryId !== ''
+            ? "wc:{$topic}:{$deliveryId}"
+            : "wc:{$topic}:" . hash('sha256', $raw);
+
+        $signature = (string) $request->attributes->get('woo_signature', '');
+
         $event = IncomingEvent::firstOrCreate(
             ['dedupe_key' => $dedupeKey],
             [
                 'source' => 'woocommerce',
-                'event_type' => $eventType,
-                'external_id' => $externalId ?: null,
+                'event_type' => $topic,
+                'external_id' => $externalId !== '' ? $externalId : null,
                 'payload' => $payload,
                 'signature' => $signature,
                 'status' => 'queued',
             ]
         );
 
-        // Ako je već postojao, ne šalji opet job
+        // već viđen event -> ne dispatch-uj job
         if (!$event->wasRecentlyCreated) {
             return response()->json(['ok' => true, 'deduped' => true]);
         }
 
-        // 5) Asinhrono procesiranje
         ProcessIncomingEvent::dispatch($event->id);
 
         return response()->json(['ok' => true]);
